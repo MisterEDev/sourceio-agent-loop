@@ -3,6 +3,8 @@ from playwright.async_api import async_playwright
 from humantyping import HumanTyper
 from loguru import logger
 
+from navigation import target_list, attack_target
+
 @logger.catch
 async def main():
     async with async_playwright() as p:
@@ -15,13 +17,23 @@ async def main():
         
         name_input = page.get_by_placeholder("Enter name")
 
+        await asyncio.sleep(2)
+
         await name_input.click()
         await typer.type(name_input, "Anon102")
 
         play_button = page.get_by_role("button", name="Play")
         await play_button.click()
+
+        await asyncio.sleep(3)
+
+        targets = await target_list(page)
+
+        await asyncio.sleep(2)
+
+        await attack_target(page, targets[0])
         
-        await asyncio.sleep(2)  # Pause briefly to see the result
+        await asyncio.sleep(10)
         await browser.close()
 
 asyncio.run(main())

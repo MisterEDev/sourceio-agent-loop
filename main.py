@@ -27,20 +27,33 @@ async def main():
 
         await asyncio.sleep(3)
 
-        targets = await target_list(page)
+        """Basic Loop will be:
+        Get Target > Attack Target > Repeat
 
-        await asyncio.sleep(2)
+        """
 
-        await attack_target(page, targets[0])
-        
-        await asyncio.sleep(5)
+        attack = True
 
-        await write_words(page)
+        while attack:
+            targets = await target_list(page)
+            await asyncio.sleep(0.5)
 
-        await asyncio.sleep(10)
+            if targets:
+                await attack_target(page, targets[0])
+                await asyncio.sleep(0.5)
 
-        # await page.wait_for_selector('.target-bar-progress[style*="width: 100%"]')
-        # for future reference knowing when the bar is full
+                progress_bar = page.locator('.target-bar-progress')
+                
+                while True:
+                    style = await progress_bar.get_attribute('style') or ''
+                    
+                    if 'width: 100%' in style:
+                        break
+                    
+                    await write_words(page)
+                    await asyncio.sleep(0.5)
+
+            await asyncio.sleep(1)
 
         await browser.close()
 

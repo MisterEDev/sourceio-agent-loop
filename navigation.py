@@ -1,6 +1,8 @@
 import asyncio
 from playwright.async_api import async_playwright, Page
 from loguru import logger
+from image_matcher import get_image_word
+from humantyping import HumanTyper
 
 async def target_list(page: Page):
     await page.get_by_text("Target List", exact=True).click()
@@ -29,3 +31,21 @@ async def attack_target(page: Page, target):
     await page.get_by_alt_text("Hack").click()
 
     await page.get_by_role("button", name="Port 21").click()
+
+async def write_words(page: Page):
+    typer = HumanTyper(wpm=90)
+
+    image_locator = page.locator('#word-to-type img')
+    input_field = page.locator('#section-type input[name="input"]')
+
+    count = image_locator.count()
+    
+    if await count > 0:
+        sources = await image_locator.evaluate_all("imgs => imgs.map(img => img.getAttribute('src'))")
+        logger.info(f"Found {len(sources)} image(s) inside #word-to-type")
+    else:
+        logger.warning("No image found inside #word-to-type")
+
+    for source in sources:
+        word = get_image_word(source)
+        await typer.type(input_field, word+" ")

@@ -3,7 +3,7 @@ from playwright.async_api import async_playwright
 from humantyping import HumanTyper
 from loguru import logger
 
-from navigation import target_list, attack_target
+from navigation import target_list, attack_target, write_words
 
 @logger.catch
 async def main():
@@ -33,7 +33,15 @@ async def main():
 
         await attack_target(page, targets[0])
         
+        await asyncio.sleep(5)
+
+        await write_words(page)
+
         await asyncio.sleep(10)
+
+        # await page.wait_for_selector('.target-bar-progress[style*="width: 100%"]')
+        # for future reference knowing when the bar is full
+
         await browser.close()
 
 asyncio.run(main())

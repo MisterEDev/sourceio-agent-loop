@@ -5,7 +5,8 @@ from image_matcher import get_image_word
 from humantyping import HumanTyper
 
 async def target_list(page: Page):
-    await page.get_by_text("Target List", exact=True).click()
+    taskbar_item = page.locator('#taskbar').get_by_text("Target List", exact=True)
+    await taskbar_item.dispatch_event("click")
 
     rows = page.locator("#list > div.wrapper")
     await rows.first.wait_for()
@@ -47,5 +48,20 @@ async def write_words(page: Page):
         logger.warning("No image found inside #word-to-type")
 
     for source in sources:
-        word = get_image_word(source)
+        word = await asyncio.to_thread(get_image_word, source)
         await typer.type(input_field, word+" ")
+
+async def get_tries_count(page: Page) -> int | None:
+    tries_locator = page.locator('#section-target div', has_text="Tries:")
+    
+    if await tries_locator.count() > 0:
+        raw_text = await tries_locator.last.inner_text()
+        
+        try:
+            value_str = raw_text.split(":")[-1].strip()
+            return int(value_str)
+        except (ValueError, IndexError):
+            logger.warning(f"Failed to parse integer from string: '{raw_text}'")
+            return None
+            
+    return None

@@ -2,6 +2,7 @@ import base64
 import io
 import json
 import os
+from datetime import datetime
 from dotenv import load_dotenv
 from google import genai
 from google.genai import types
@@ -17,6 +18,7 @@ HAMMING_DISTANCE_THRESHOLD = 2
 client = genai.Client()
 
 _CACHE: dict[str, str] = {}
+_LAST_ATTEMPT = {}
 
 
 def _load_cache() -> dict[str, str]:
@@ -101,6 +103,7 @@ def get_image_word(b64_str: str):
     cached_word = lookup_in_cache(current_hash)
     if cached_word:
         logger.info(f"Cache HIT for visual hash '{hash_str}' -> '{cached_word}'")
+        track_attempt(b64_str, current_hash, cached_word)
         return cached_word
 
     logger.info(f"Cache MISS for visual hash '{hash_str}'. Querying LLM...")
@@ -116,4 +119,28 @@ def get_image_word(b64_str: str):
     logger.success(
         f"Saved visual hash '{hash_str}' mapped to '{extracted_word}'"
     )
+    track_attempt(b64_str, current_hash, extracted_word)
     return extracted_word
+
+def track_attempt(b64_src: str, hash_val, word: str):
+    """Saves the details of the latest word attempt in memory."""
+    global _LAST_ATTEMPT
+    _LAST_ATTEMPT = {
+        "timestamp": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
+        "hash": str(hash_val),
+        "guessed_word": word,
+        "b64_string": b64_src
+    }
+
+def log_failed_attempt(filepath="failed_attempts.jsonl"):
+    """Appends the last recorded failed attempt to a log file."""
+    global _LAST_ATTEMPT
+    if not _LAST_ATTEMPT:
+        return
+
+    try:
+        with open(filepath, "a", encoding="utf-8") as f:
+            f.write(json.dumps(_LAST_ATTEMPT) + "\n")
+        logger.warning(f"Logged failed attempt for word '{_LAST_ATTEMPT.get('guessed_word')}' to {filepath}")
+    except Exception as e:
+        logger.error(f"Failed to write to failure log: {e}")

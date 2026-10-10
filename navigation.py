@@ -48,8 +48,23 @@ async def write_words(page: Page):
         logger.warning("No image found inside #word-to-type")
 
     for source in sources:
-        word = await asyncio.to_thread(get_image_word, source)
-        await typer.type(input_field, word+" ")
+        try:
+            word = await asyncio.wait_for(
+                asyncio.to_thread(get_image_word, source),
+                timeout=30.0
+            )
+        except asyncio.TimeoutError:
+            logger.error("AI request timed out after 30 seconds! Skipping image.")
+            word = ""
+        except Exception as e:
+            logger.error(f"Error resolving image: {e}")
+            word = ""
+
+        if word:
+            await input_field.fill('')
+            await typer.type(input_field, word)
+            await page.keyboard.press("Enter")
+            await asyncio.sleep(0.3)
 
 async def get_tries_count(page: Page) -> int | None:
     tries_locator = page.locator('#section-target div', has_text="Tries:")

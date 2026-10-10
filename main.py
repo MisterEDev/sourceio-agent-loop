@@ -4,7 +4,7 @@ from humantyping import HumanTyper
 from loguru import logger
 
 from navigation import target_list, attack_target, write_words, get_tries_count
-from image_matcher import get_image_word
+from image_matcher import log_failed_attempt
 
 @logger.catch
 async def main():
@@ -63,6 +63,7 @@ async def main():
                 if current_tries is not None and tries is not None:
                     if current_tries < tries:
                         logger.warning(f"Tries decreased: {tries} -> {current_tries}")
+                        log_failed_attempt()
                     tries = current_tries
 
                 if tries == 0:
@@ -70,7 +71,7 @@ async def main():
                     break
 
             if tries is not None and tries > 0:
-                message_input = page.locator('div[contenteditable="true"]')
+                message_input = page.locator('.window:has-text("Hacked Player") div[contenteditable="true"]')
                 await message_input.press("Enter")
 
                 await asyncio.sleep(1)
